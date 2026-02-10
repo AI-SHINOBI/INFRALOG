@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block content %}
+
+<h2>{{ project.name }}</h2>
+<p class="muted">Project logs</p>
+
+<form method="post">
+    {% csrf_token %}
+    <select name="log_type">
+        <option value="INFO">Info</option>
+        <option value="WARNING">Warning</option>
+        <option value="ERROR">Error</option>
+    </select>
+
+    <textarea name="message" placeholder="Log message..." required></textarea>
+    <button>Add Log</button>
+</form>
+
+<hr>
+
+{% for log in logs %}
+<div>
+    <strong>[{{ log.log_type }}]</strong>
+    {{ log.message }}
+    <small>{{ log.created_at }}</small>
+    <a href="{% url 'delete_log' log.id %}">Delete</a>
+</div>
+{% empty %}
+<p>No logs yet.</p>
+{% endfor %}
+
+{% endblock %}

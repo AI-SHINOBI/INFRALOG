@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>InfraLog</title>
+    <link rel="stylesheet" href="/static/core/css/app.css">
+    <script defer src="/static/core/js/app.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+    <div class="logo">InfraLog</div>
+
+    <nav class="nav-group">
+        <a href="{% url 'dashboard' %}"
+           class="nav {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            Dashboard
+        </a>
+
+        <a href="{% url 'projects' %}"
+           class="nav {% if request.resolver_match.url_name in 'projects project_detail' %}active{% endif %}">
+            Projects
+        </a>
+
+        <a href="{% url 'logs' %}"
+           class="nav {% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
+            Logs
+        </a>
+
+        <a href="{% url 'settings' %}"
+           class="nav {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+            Settings
+        </a>
+    </nav>
+</aside>
+
+
+    <main class="content">
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+{% block content %}
+
+<h1>Projects</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <input name="name" placeholder="Project name" required>
+    <button>Create</button>
+</form>
+
+<hr>
+
+<ul>
+{% for project in projects %}
+    <li>
+        <a href="{% url 'project_detail' project.id %}">
+            {{ project.name }}
+        </a>
+        <small>{{ project.created_at|date:"d M Y" }}</small>
+
+        <form method="post"
+              action="{% url 'delete_project' project.id %}"
+              style="display:inline;">
+            {% csrf_token %}
+            <button>Delete</button>
+        </form>
+    </li>
+{% empty %}
+    <li>No projects yet</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

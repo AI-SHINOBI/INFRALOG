@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% block content %}
+
+<h1>System Logs</h1>
+
+{% for log in logs %}
+    <p>
+        <strong>{{ log.project.name }}</strong>
+        [{{ log.log_type }}] {{ log.message }}
+        <small>{{ log.created_at }}</small>
+    </p>
+{% empty %}
+    <p>No logs recorded.</p>
+{% endfor %}
+
+{% endblock %}

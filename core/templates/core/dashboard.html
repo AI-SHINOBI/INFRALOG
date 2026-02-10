@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h1>InfraLog Dashboard</h1>
+<p class="muted">Centralized infrastructure logging overview</p>
+
+<div class="card">
+    <p><strong>Status:</strong> Online</p>
+    <p><strong>Total Projects:</strong> {{ total_projects }}</p>
+    <p><strong>Total Logs:</strong> {{ total_logs }}</p>
+</div>
+
+<div class="card">
+    <p>System operational. All services responding normally.</p>
+</div>
+{% endblock %}
