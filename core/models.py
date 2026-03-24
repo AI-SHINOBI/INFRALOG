@@ -27,3 +27,4 @@ class DevLog(models.Model):
 
     def __str__(self):
         return f"{self.project.name} | {self.log_type}"
+ 

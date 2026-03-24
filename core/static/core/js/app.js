@@ -76,3 +76,10 @@ function enhanceLogs() {
 
 /* ---------- Debug Marker ---------- */
 console.info("InfraLog enhanced UI layer active");
+ 
+/* Auto refresh (live system feel) */
+setInterval(() => {
+    if (window.location.pathname === "/") {
+        location.reload();
+    }
+}, 15000);

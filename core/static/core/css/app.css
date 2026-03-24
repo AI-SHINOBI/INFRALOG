@@ -104,3 +104,162 @@ button:hover {
     color: #8b949e;
     font-size: 14px;
 }
+
+/* ===== GRID LAYOUT ===== */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+/* ===== METRIC CARDS ===== */
+.metric {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 20px rgba(88,166,255,0.15);
+}
+
+.metric .big {
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 10px;
+}
+
+/* ===== COLOR STATES ===== */
+.metric.error {
+    border-left: 4px solid #f85149;
+}
+
+.metric.warning {
+    border-left: 4px solid #f0883e;
+}
+
+.metric.info {
+    border-left: 4px solid #58a6ff;
+}
+
+/* ===== SYSTEM STATUS ===== */
+.status {
+    border-left: 6px solid;
+}
+
+.status.healthy {
+    border-color: #22c55e;
+}
+
+.status.moderate {
+    border-color: #f59e0b;
+}
+
+.status.critical {
+    border-color: #ef4444;
+}
+
+/* ===== HEADINGS ===== */
+h1 {
+    margin-bottom: 6px;
+}
+
+h2 {
+    margin-bottom: 10px;
+}
+
+/* ===== LOG LIST ===== */
+.log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ===== LOG ITEM ===== */
+.log-item {
+    padding: 14px;
+    border-radius: 8px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    transition: all 0.2s ease;
+}
+
+.log-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(88,166,255,0.15);
+}
+
+/* ===== LOG HEADER ===== */
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+/* ===== BADGES ===== */
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge.info {
+    background: rgba(88,166,255,0.15);
+    color: #58a6ff;
+}
+
+.badge.warning {
+    background: rgba(240,136,62,0.15);
+    color: #f0883e;
+}
+
+.badge.error {
+    background: rgba(248,81,73,0.15);
+    color: #f85149;
+}
+
+/* ===== MESSAGE ===== */
+.log-message {
+    margin: 6px 0 10px;
+}
+
+/* ===== DELETE BUTTON ===== */
+.delete-btn {
+    font-size: 12px;
+    color: #f85149;
+    text-decoration: none;
+}
+
+.delete-btn:hover {
+    text-decoration: underline;
+}
+
+/* ===== TIME ===== */
+.time {
+    font-size: 12px;
+    color: #8b949e;
+}
+/* Small text */
+.small {
+    font-size: 12px;
+}
+
+/* Smooth global transitions */
+* {
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* Scrollbar (premium feel) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
