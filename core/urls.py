@@ -2,21 +2,21 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # AUTH
-    path("login/", views.login_view, name="login"),
-    path("logout/", views.logout_view, name="logout"),
-
-    # UI ROUTES
-    path("", views.dashboard, name="dashboard"),
-    path("projects/", views.projects, name="projects"),
-    path("projects/<int:project_id>/", views.project_detail, name="project_detail"),
-    path("projects/delete/<int:project_id>/", views.delete_project, name="delete_project"),
-    path("logs/", views.logs, name="logs"),
-    path("logs/delete/<int:log_id>/", views.delete_log, name="delete_log"),
-    path("settings/", views.settings, name="settings"),
-
-    # API ROUTES (NEW)
+    # ================= DASHBOARD =================
     path("api/dashboard/", views.api_dashboard),
+
+    # ================= PROJECTS =================
     path("api/projects/", views.api_projects),
+    path("api/projects/create/", views.api_create_project),
+    path("api/projects/<int:project_id>/delete/", views.api_delete_project),
+
+    # ================= PROJECT DETAIL =================
+    path("api/projects/<int:project_id>/", views.api_project_detail),
+
+    # ================= LOGS =================
     path("api/projects/<int:project_id>/logs/", views.api_project_logs),
+    path("api/projects/<int:project_id>/logs/create/", views.api_create_log),
+
+    # ================= LOG DELETE =================
+    path("api/logs/<int:log_id>/delete/", views.api_delete_log),
 ]

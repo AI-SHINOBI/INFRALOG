@@ -12,10 +12,6 @@ export default function Sidebar() {
       <NavLink to="/projects" className="nav">
         Projects
       </NavLink>
-
-      <NavLink to="/logs" className="nav">
-        Logs
-      </NavLink>
     </div>
   );
 }

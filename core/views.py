@@ -1,223 +1,178 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Count, Q
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .models import Project, DevLog
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+import json
+
+from .models import Project, Log
 
 
-# ================= AUTH =================
+# ================= RESPONSE =================
 
-def login_view(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
-
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-
-        user = authenticate(request, username=username, password=password)
-
-        if user:
-            login(request, user)
-            return redirect("dashboard")
-
-    return render(request, "core/login.html")
+def success(data):
+    return JsonResponse({"success": True, "data": data})
 
 
-def logout_view(request):
-    logout(request)
-    return redirect("login")
+def error(msg="Error"):
+    return JsonResponse({"success": False, "error": msg})
 
 
-# ================= DASHBOARD =================
+# ================= HEALTH ENGINE =================
 
-@login_required
-def dashboard(request):
-    total_projects = Project.objects.count()
-    total_logs = DevLog.objects.count()
+def calculate_health(logs):
+    total = logs.count()
+    error_count = logs.filter(type="ERROR").count()
+    warning_count = logs.filter(type="WARNING").count()
+    info_count = logs.filter(type="INFO").count()
 
-    error_count = DevLog.objects.filter(log_type="ERROR").count()
-    warning_count = DevLog.objects.filter(log_type="WARNING").count()
-    info_count = DevLog.objects.filter(log_type="INFO").count()
+    if total == 0:
+        return {"status": "healthy", "score": 100}
 
-    health_score = (error_count * 3) + (warning_count * 2) + (info_count * 1)
+    score = 100 - (error_count * 15) - (warning_count * 5)
+    score = max(score, 0)
 
-    if error_count > 10:
-        system_status = "Critical"
-    elif error_count > 5 or warning_count > 10:
-        system_status = "Moderate"
+    if score > 80:
+        status = "healthy"
+    elif score > 50:
+        status = "moderate"
     else:
-        system_status = "Healthy"
+        status = "critical"
 
-    highest_risk_project = Project.objects.annotate(
-        error_count=Count("logs", filter=Q(logs__log_type="ERROR"))
-    ).order_by("-error_count").first()
+    return {"status": status, "score": score}
 
-    highest_risk_project_errors = (
-        highest_risk_project.error_count if highest_risk_project else 0
-    )
 
-    context = {
-        "total_projects": total_projects,
-        "total_logs": total_logs,
-        "error_count": error_count,
-        "warning_count": warning_count,
-        "info_count": info_count,
-        "system_status": system_status,
-        "health_score": health_score,
-        "highest_risk_project": highest_risk_project,
-        "highest_risk_project_errors": highest_risk_project_errors,
-    }
+def generate_alerts(logs):
+    alerts = []
 
-    return render(request, "core/dashboard.html", context)
+    errors = logs.filter(type="ERROR").count()
+    warnings = logs.filter(type="WARNING").count()
+
+    if errors > 0:
+        alerts.append({"type": "critical", "message": f"{errors} errors detected"})
+
+    if warnings > 3:
+        alerts.append({"type": "warning", "message": f"{warnings} warnings detected"})
+
+    if logs.count() == 0:
+        alerts.append({"type": "info", "message": "No logs available"})
+
+    return alerts
 
 
 # ================= PROJECTS =================
 
-@login_required
-def projects(request):
-    if request.method == "POST":
-        name = request.POST.get("name")
-        if name:
-            Project.objects.create(
-                name=name,
-                created_by=request.user
-            )
-        return redirect("projects")
-
-    projects = Project.objects.all().order_by("-created_at")
-    return render(request, "core/projects.html", {"projects": projects})
+def api_projects(request):
+    projects = list(Project.objects.values())
+    return success(projects)
 
 
-@login_required
-def project_detail(request, project_id):
+def api_project_detail(request, project_id):
     project = get_object_or_404(Project, id=project_id)
+    logs = Log.objects.filter(project=project)
 
-    if request.method == "POST":
-        log_type = request.POST.get("log_type")
-        message = request.POST.get("message")
+    health = calculate_health(logs)
 
-        if log_type and message:
-            DevLog.objects.create(
-                project=project,
-                log_type=log_type,
-                message=message,
-                created_by=request.user
-            )
-        return redirect("project_detail", project_id=project.id)
+    insights = []
+    if logs.filter(type="ERROR").count() > 3:
+        insights.append("High error frequency detected")
+    if logs.filter(type="WARNING").count() > 5:
+        insights.append("Too many warnings — unstable system")
+    if logs.count() == 0:
+        insights.append("No logs — system not monitored")
 
-    logs = project.logs.all().order_by("-created_at")
-
-    return render(
-        request,
-        "core/project_detail.html",
-        {
-            "project": project,
-            "logs": logs
-        }
-    )
+    return success({
+        "id": project.id,
+        "name": project.name,
+        "health": health,
+        "alerts": generate_alerts(logs),
+        "insights": insights
+    })
 
 
-@login_required
-def delete_project(request, project_id):
-    project = get_object_or_404(Project, id=project_id)
-    project.delete()
-    return redirect("projects")
+@csrf_exempt
+def api_create_project(request):
+    if request.method != "POST":
+        return error("Invalid method")
+
+    try:
+        data = json.loads(request.body or "{}")
+        name = data.get("name")
+
+        if not name:
+            return error("Name required")
+
+        project = Project.objects.create(name=name)
+
+        return success({"id": project.id})
+    except Exception as e:
+        return error(str(e))
+
+
+@csrf_exempt
+def api_delete_project(request, project_id):
+    if request.method != "POST":
+        return error("Invalid method")
+
+    Project.objects.filter(id=project_id).delete()
+    return success(True)
 
 
 # ================= LOGS =================
 
-@login_required
-def logs(request):
-    logs = DevLog.objects.select_related("project").order_by("-created_at")
-    return render(request, "core/logs.html", {"logs": logs})
+def api_project_logs(request, project_id):
+    logs = Log.objects.filter(project_id=project_id).order_by("-created_at")
+
+    return success([
+        {
+            "id": l.id,
+            "type": l.type,
+            "message": l.message,
+            "created_at": l.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "relative_time": l.created_at.strftime("%d %b %H:%M"),
+        }
+        for l in logs
+    ])
 
 
-@login_required
-def delete_log(request, log_id):
-    log = get_object_or_404(DevLog, id=log_id)
-    project_id = log.project.id
-    log.delete()
-    return redirect("project_detail", project_id=project_id)
+@csrf_exempt
+def api_create_log(request, project_id):
+    if request.method != "POST":
+        return error("Invalid method")
+
+    try:
+        data = json.loads(request.body or "{}")
+
+        log = Log.objects.create(
+            project_id=project_id,
+            type=data.get("type", "INFO"),
+            message=data.get("message", "")
+        )
+
+        return success({"id": log.id})
+    except Exception as e:
+        return error(str(e))
 
 
-@login_required
-def settings(request):
-    return render(request, "core/settings.html")
+@csrf_exempt
+def api_delete_log(request, log_id):
+    if request.method != "POST":
+        return error("Invalid method")
+
+    Log.objects.filter(id=log_id).delete()
+    return success(True)
 
 
-# ================= API (PUBLIC FOR REACT) =================
+# ================= DASHBOARD =================
 
 def api_dashboard(request):
-    total_projects = Project.objects.count()
-    total_logs = DevLog.objects.count()
+    logs = Log.objects.all()
 
-    error_count = DevLog.objects.filter(log_type="ERROR").count()
-    warning_count = DevLog.objects.filter(log_type="WARNING").count()
-    info_count = DevLog.objects.filter(log_type="INFO").count()
-
-    # 🚨 ALERT ENGINE
-    alerts = []
-
-    if error_count > 10:
-        alerts.append({
-            "type": "CRITICAL",
-            "message": "High number of system errors detected"
-        })
-
-    if warning_count > 15:
-        alerts.append({
-            "type": "WARNING",
-            "message": "Warnings are increasing rapidly"
-        })
-
-    if total_logs == 0:
-        alerts.append({
-            "type": "INFO",
-            "message": "No logs available yet"
-        })
-
-    data = {
-        "total_projects": total_projects,
-        "total_logs": total_logs,
-        "error_count": error_count,
-        "warning_count": warning_count,
-        "info_count": info_count,
-        "alerts": alerts,  # 🔥 NEW
-    }
-
-    return JsonResponse(data)
-
-
-def api_projects(request):
-    projects = Project.objects.all().order_by("-created_at")
-
-    data = [
-        {
-            "id": p.id,
-            "name": p.name,
-            "created_at": p.created_at.isoformat(),  # 🔥 IMPORTANT FIX
-        }
-        for p in projects
-    ]
-
-    return JsonResponse(data, safe=False)
-
-
-def api_project_logs(request, project_id):
-    project = get_object_or_404(Project, id=project_id)
-
-    logs = project.logs.all().order_by("-created_at")
-
-    data = [
-        {
-            "id": log.id,
-            "type": log.log_type,
-            "message": log.message,
-            "created_at": log.created_at.isoformat(),  # 🔥 IMPORTANT FIX
-        }
-        for log in logs
-    ]
-
-    return JsonResponse(data, safe=False)
+    return success({
+        "total_projects": Project.objects.count(),
+        "total_logs": logs.count(),
+        "distribution": {
+            "error": logs.filter(type="ERROR").count(),
+            "warning": logs.filter(type="WARNING").count(),
+            "info": logs.filter(type="INFO").count()
+        },
+        "health": calculate_health(logs)
+    })

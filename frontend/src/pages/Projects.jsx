@@ -1,92 +1,165 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+
+const API = "http://localhost:8000/api"
 
 export default function Projects() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [projects, setProjects] = useState([])
+  const [name, setName] = useState("")
+  const [selected, setSelected] = useState(null)
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
+  // LOAD PROJECTS
+  const loadProjects = async () => {
+    try {
+      const res = await fetch(`${API}/projects/`, {
+      })
+
+      const text = await res.text()
+      let json
+
+      try {
+        json = JSON.parse(text)
+      } catch {
+        console.error("Projects not JSON:", text)
+        setProjects([])
+        return
+      }
+
+      if (json.success && Array.isArray(json.data)) {
+        setProjects(json.data)
+      } else {
+        setProjects([])
+      }
+    } catch (err) {
+      console.error("Load error:", err)
+      setProjects([])
+    }
+  }
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/projects/", {
-      credentials: "include", // ✅ IMPORTANT (auth fix)
-    })
-      .then(res => {
-        if (res.status === 302 || res.status === 403) {
-          throw new Error("Unauthorized");
-        }
-        if (!res.ok) {
-          throw new Error("Failed to fetch");
-        }
-        return res.json();
-      })
-      .then(data => {
-        setProjects(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
+    loadProjects()
+  }, [])
 
-        if (err.message === "Unauthorized") {
-          setError("Login required. Open Django and login first.");
-        } else {
-          setError("API not responding");
-        }
+  // CREATE PROJECT
+  const createProject = async () => {
+    if (!name.trim()) return
 
-        setLoading(false);
-      });
-  }, []);
+    try {
+      const res = await fetch(`${API}/projects/create/`, {
+        method: "POST",
+        
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+      })
+
+      const text = await res.text()
+      let json
+
+      try {
+        json = JSON.parse(text)
+      } catch {
+        console.error("Create not JSON:", text)
+        return
+      }
+
+      if (json.success) {
+        setName("")
+        loadProjects()
+      } else {
+        console.error("Create failed:", json)
+        alert(json.error || "Create failed")
+      }
+    } catch (err) {
+      console.error("Create error:", err)
+    }
+  }
+
+  // DELETE PROJECT
+  const deleteProject = async () => {
+    if (!selected) return
+
+    try {
+      const res = await fetch(`${API}/projects/${selected}/delete/`, {
+        method: "POST",
+        
+      })
+
+      const text = await res.text()
+      let json
+
+      try {
+        json = JSON.parse(text)
+      } catch {
+        console.error("Delete not JSON:", text)
+        return
+      }
+
+      if (json.success) {
+        setSelected(null)
+        loadProjects()
+      }
+    } catch (err) {
+      console.error("Delete error:", err)
+    }
+  }
 
   return (
-    <div>
-      <h1 className="page-title">Projects</h1>
+    <>
+      <h1>Projects</h1>
 
-      {/* 🔄 Loading */}
-      {loading && (
+      {/* CREATE */}
+      <div className="card" style={{ display: "flex", gap: "10px" }}>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Project name..."
+          style={{ flex: 1 }}
+        />
+        <button onClick={createProject}>Create</button>
+      </div>
+
+      {/* ACTION PANEL */}
+      {selected && (
         <div className="card">
-          <p className="muted">Fetching infrastructure projects...</p>
+          <p>Selected: {selected}</p>
+
+          <button onClick={() => navigate(`/projects/${selected}`)}>
+            Open
+          </button>
+
+          <button
+            onClick={deleteProject}
+            style={{ background: "#ef4444" }}
+          >
+            Delete
+          </button>
         </div>
       )}
 
-      {/* ❌ Error */}
-      {error && (
-        <div className="card error-card">
-          <p>{error}</p>
-        </div>
-      )}
+      {/* PROJECT GRID */}
+      <div className="grid">
+        {projects.length === 0 && (
+          <p style={{ opacity: 0.6 }}>No projects available</p>
+        )}
 
-      {/* 📭 Empty */}
-      {!loading && !error && projects.length === 0 && (
-        <div className="card empty-card">
-          <p>No projects found</p>
-          <span>Create one from Django panel</span>
-        </div>
-      )}
-
-      {/* ✅ Projects */}
-      {!loading && !error && projects.length > 0 && (
-        <div className="grid">
-          {projects.map(project => (
-            <div
-              className="card project-card"
-              key={project.id}
-              onClick={() => navigate(`/projects/${project.id}`)}
-            >
-              <h3>{project.name}</h3>
-
-              <p className="muted">
-                {new Date(project.created_at).toLocaleString()}
-              </p>
-
-              <div className="project-meta">
-                <span className="status-dot"></span>
-                <span>Active</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+        {projects.map((p) => (
+          <div
+            key={p.id}
+            className={`card project-card ${
+              selected === p.id ? "active" : ""
+            }`}
+            onClick={() => setSelected(p.id)}
+            onDoubleClick={() => navigate(`/projects/${p.id}`)}
+          >
+            <h3>{p.name}</h3>
+            <p>{p.created_at}</p>
+          </div>
+        ))}
+      </div>
+    </>
+  )
 }
